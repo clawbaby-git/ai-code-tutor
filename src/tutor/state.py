@@ -8,6 +8,7 @@ from pathlib import Path
 STATE_FILE = Path(".study/state.json")
 DEFAULT_MODE = "natural-language"
 STATE_VERSION = 1
+SUMMARY_MAX_LENGTH = 600
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,73 @@ class StudyState:
 
 def state_path(root: Path) -> Path:
     return root / STATE_FILE
+
+
+def normalize_summary(summary: object, max_length: int = SUMMARY_MAX_LENGTH) -> str:
+    if isinstance(summary, str):
+        raw_summary = summary
+    elif summary is None:
+        raw_summary = ""
+    else:
+        try:
+            raw_summary = str(summary)
+        except Exception:
+            raw_summary = ""
+
+    normalized = " ".join(raw_summary.split())
+    if len(normalized) <= max_length:
+        return normalized
+
+    segments = [segment.strip(" ,;，；。") for segment in raw_summary.replace("\r", "\n").splitlines()]
+    sentences: list[str] = []
+    for segment in segments:
+        if not segment:
+            continue
+        parts = segment.split(". ")
+        for part in parts:
+            cleaned = " ".join(part.split()).strip(" ,;，；。")
+            if cleaned:
+                sentences.append(cleaned)
+
+    categories = (
+        ("关键盲点", ("blind", "mistake", "confus", "gap", "weak", "problem", "error", "盲点", "卡住", "不会", "混淆", "错误", "薄弱")),
+        ("当前理解", ("understand", "can", "know", "progress", "learn", "理解", "掌握", "知道", "会了", "能", "进展")),
+        ("下一步聚焦", ("next", "focus", "todo", "need", "practice", "follow", "下一步", "聚焦", "需要", "练习", "继续", "接下来")),
+    )
+
+    chosen: list[tuple[str, str]] = []
+    used: set[str] = set()
+    lowered_sentences = [(sentence, sentence.lower()) for sentence in sentences]
+    for label, keywords in categories:
+        match = next(
+            (
+                sentence
+                for sentence, lowered in lowered_sentences
+                if sentence not in used and any(keyword in lowered for keyword in keywords)
+            ),
+            "",
+        )
+        if match:
+            chosen.append((label, match))
+            used.add(match)
+
+    for label, _ in categories:
+        if any(existing_label == label for existing_label, _ in chosen):
+            continue
+        fallback = next((sentence for sentence in sentences if sentence not in used), "")
+        if fallback:
+            chosen.append((label, fallback))
+            used.add(fallback)
+
+    compressed = "; ".join(f"{label}: {text}" for label, text in chosen if text)
+    if not compressed:
+        compressed = normalized[:max_length]
+
+    if len(compressed) <= max_length:
+        return compressed
+
+    ellipsis = "..."
+    return compressed[: max_length - len(ellipsis)].rstrip(" ,;，；。") + ellipsis
 
 
 def load_state(root: Path) -> StudyState | None:
@@ -82,13 +150,14 @@ def save_state(
 ) -> Path:
     path = state_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
+    normalized_summary = normalize_summary(summary)
     payload = {
         "version": STATE_VERSION,
         "course_id": course_id,
         "lesson_index": lesson_index,
         "mode": mode or DEFAULT_MODE,
         "updated_at": datetime.now(timezone.utc).isoformat(),
-        "summary": summary,
+        "summary": normalized_summary,
         "last_feedback": last_feedback,
     }
     path.write_text(
