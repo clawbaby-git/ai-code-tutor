@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .course import Course, Lesson, scan_courses
+from .progression import ProgressionDecision, decide_progression
 from .state import DEFAULT_MODE, load_state, save_state
 
 
@@ -64,6 +65,26 @@ class TutorSession:
         self.lesson_index += 1
         self._save_state()
         return True
+
+    def handle_progression(
+        self,
+        user_intent: str,
+        key_points_covered: bool,
+        pending_gaps: list[str] | None = None,
+        user_confirmation: bool | None = None,
+    ) -> ProgressionDecision:
+        decision = decide_progression(
+            user_intent=user_intent,
+            key_points_covered=key_points_covered,
+            pending_gaps=pending_gaps or [],
+            user_confirmation=user_confirmation,
+        )
+        if decision.action == "advance" and not self.next_lesson():
+            return ProgressionDecision(
+                action="stay",
+                message="You are already at the last lesson.",
+            )
+        return decision
 
     def _restore_state(self) -> None:
         state = load_state(self.workspace)

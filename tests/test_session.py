@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tutor.progression import decide_progression
 from tutor.session import TutorSession
 from tutor.state import state_path
 
@@ -161,6 +162,81 @@ class TutorSessionTests(unittest.TestCase):
             payload = json.loads(state_path(root).read_text(encoding="utf-8"))
             self.assertEqual(payload["lesson_index"], 1)
             self.assertEqual(payload["course_id"], "courses/logic")
+
+    def test_next_lesson_gate_asks_for_confirmation_when_gaps_remain(self) -> None:
+        decision = decide_progression(
+            user_intent="next_lesson",
+            key_points_covered=False,
+            pending_gaps=["guard clauses", "naming conditions"],
+            user_confirmation=None,
+        )
+
+        self.assertEqual(decision.action, "ask_confirm")
+        self.assertIn("guard clauses", decision.message)
+        self.assertIn("continue to the next lesson", decision.message)
+
+    def test_next_lesson_gate_advances_after_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            course_dir = root / "courses" / "logic"
+            course_dir.mkdir(parents=True)
+            (course_dir / "1_first.py").write_text("x = 1\n", encoding="utf-8")
+            (course_dir / "2_second.py").write_text("x = 2\n", encoding="utf-8")
+
+            session = TutorSession.from_workspace(root)
+            session.select_course(0)
+
+            decision = session.handle_progression(
+                user_intent="next_lesson",
+                key_points_covered=False,
+                pending_gaps=["extracting intent"],
+                user_confirmation=True,
+            )
+
+            self.assertEqual(decision.action, "advance")
+            self.assertEqual(session.current_lesson.filename, "2_second.py")
+
+    def test_next_lesson_gate_stays_when_not_confirmed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            course_dir = root / "courses" / "logic"
+            course_dir.mkdir(parents=True)
+            (course_dir / "1_first.py").write_text("x = 1\n", encoding="utf-8")
+            (course_dir / "2_second.py").write_text("x = 2\n", encoding="utf-8")
+
+            session = TutorSession.from_workspace(root)
+            session.select_course(0)
+
+            decision = session.handle_progression(
+                user_intent="next_lesson",
+                key_points_covered=False,
+                pending_gaps=["extracting intent"],
+                user_confirmation=False,
+            )
+
+            self.assertEqual(decision.action, "stay")
+            self.assertEqual(session.current_lesson.filename, "1_first.py")
+
+    def test_next_lesson_gate_advances_when_key_points_are_covered(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            course_dir = root / "courses" / "logic"
+            course_dir.mkdir(parents=True)
+            (course_dir / "1_first.py").write_text("x = 1\n", encoding="utf-8")
+            (course_dir / "2_second.py").write_text("x = 2\n", encoding="utf-8")
+
+            session = TutorSession.from_workspace(root)
+            session.select_course(0)
+
+            decision = session.handle_progression(
+                user_intent="next_lesson",
+                key_points_covered=True,
+                pending_gaps=["extracting intent"],
+                user_confirmation=None,
+            )
+
+            self.assertEqual(decision.action, "advance")
+            self.assertEqual(session.current_lesson.filename, "2_second.py")
 
 
 if __name__ == "__main__":
