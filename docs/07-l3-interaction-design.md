@@ -5,7 +5,7 @@
 
 ## 3.1 对话渠道：OpenClaw 统一模式
 
-**决策**：使用 OpenClaw 统一支持本地 OpenCode 和 Telegram 双渠道。
+**决策**：使用 OpenClaw 统一支持 Discord / Telegram / 本地目录多渠道。
 
 **关键点**：
 - 同一套 `agents.md` 定义 AI 角色

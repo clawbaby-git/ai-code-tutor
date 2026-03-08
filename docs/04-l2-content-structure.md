@@ -30,7 +30,7 @@ ai-code-tutor/
 |-----|------|
 | 结构统一 | `courses/` 和 `my-courses/` 下的课程文件夹结构完全一致 |
 | 文件夹为单位 | 一个课程 = 一个文件夹 |
-| 进度会话级 | 不存 progress 文件，学习状态在 AI 会话中维护 |
+| 单状态文件 | 不存 progress 文件，当前学习状态统一写入 `/.study/state.json` |
 | 用户资料隔离 | `my-courses/` 默认在 `.gitignore` 中 |
 
 ### 3. 课程内容来源
@@ -54,7 +54,7 @@ ai-code-tutor/
 
 ## 讨论中排除的方案
 
-- 不使用 progress.yaml，改为会话级维护
+- 不使用 progress.yaml，改为单状态文件维护
 - 用户课程不松散存放，统一使用 `my-courses/`
 - 内置与用户课程不走两套结构
 

@@ -17,24 +17,18 @@ def main() -> int:
         print("No courses found in ./courses or ./my-courses")
         return 1
 
-    if session.selected_course is None:
-        print("Available courses:")
-        for idx, course in enumerate(session.courses, start=1):
-            print(f"{idx}. {course.id} ({len(course.lessons)} lessons)")
+    print("Available courses:")
+    for idx, course in enumerate(session.courses, start=1):
+        print(f"{idx}. {course.id} ({len(course.lessons)} lessons)")
 
-        raw = input("Select course by number: ").strip()
-        try:
-            selection = int(raw) - 1
-            course = session.select_course(selection)
-        except (ValueError, IndexError):
-            print("Invalid selection")
-            return 1
-        print(f"\nStarting course: {course.id}\n")
-    else:
-        print(
-            f"Resuming course: {session.selected_course.id} "
-            f"(lesson {session.lesson_index + 1}/{len(session.selected_course.lessons)})\n"
-        )
+    raw = input("Select course by number: ").strip()
+    try:
+        selection = int(raw) - 1
+        course = session.select_course(selection)
+    except (ValueError, IndexError):
+        print("Invalid selection")
+        return 1
+    print(f"\nStarting course: {course.id}\n")
 
     _show_current(session)
 
@@ -44,11 +38,16 @@ def main() -> int:
             print("Session ended.")
             return 0
         if action == "n":
-            if session.next_lesson():
+            decision = session.handle_progression(
+                user_intent="next_lesson",
+                key_points_covered=True,
+            )
+            if decision.action == "advance":
                 print()
                 _show_current(session)
                 continue
-            print("You are at the last lesson.")
+            if decision.message:
+                print(decision.message)
             continue
         print("Unknown command. Use 'n' or 'q'.")
 
