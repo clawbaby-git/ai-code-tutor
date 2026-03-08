@@ -32,6 +32,8 @@ Rules:
 - No `user_id`.
 - No `channel` field.
 - Not a long-term cross-course profile.
+- `summary` is length-limited and stores only highest-value context.
+- On each startup, always re-ask course selection.
 
 ## Learning Flow (Natural Language)
 1. Select course.

@@ -31,8 +31,8 @@ Recommended fields:
 
 ## Startup Flow
 1. Scan `./courses/` and `./my-courses/`.
-2. Ask which course to learn.
-3. Load current lesson from state if valid; otherwise start at lesson 1.
+2. Every startup, always ask which course to learn (do not auto-resume course selection).
+3. After user selects a course, start from lesson 1 by default; optionally reference concise state summary as context.
 4. Show lesson code and begin guidance.
 
 ## Teaching Loop
@@ -41,6 +41,7 @@ Recommended fields:
 3. Let user respond in natural language.
 4. Give focused feedback and next-step prompts.
 5. Keep `summary` / `last_feedback` concise in state.
+6. `summary` must be length-limited and only contain highest-value context (key blind spots, current understanding, next-step focus).
 
 ## "Next lesson" Rule
 When user says "next lesson":
