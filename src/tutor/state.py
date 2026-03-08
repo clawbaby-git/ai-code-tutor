@@ -29,15 +29,45 @@ def load_state(root: Path) -> StudyState | None:
     path = state_path(root)
     if not path.exists():
         return None
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    version = payload.get("version")
+    course_id = payload.get("course_id")
+    lesson_index = payload.get("lesson_index")
+    mode = payload.get("mode")
+    updated_at = payload.get("updated_at")
+    summary = payload.get("summary")
+    last_feedback = payload.get("last_feedback")
+
+    if not isinstance(version, int):
+        return None
+    if not isinstance(course_id, str):
+        return None
+    if not isinstance(lesson_index, int) or lesson_index < 0:
+        return None
+    if not isinstance(mode, str):
+        return None
+    if not isinstance(updated_at, str):
+        return None
+    if not isinstance(summary, str):
+        return None
+    if not isinstance(last_feedback, str):
+        return None
+
     return StudyState(
-        version=int(payload.get("version", STATE_VERSION)),
-        course_id=str(payload.get("course_id", "")),
-        lesson_index=int(payload.get("lesson_index", 0)),
-        mode=str(payload.get("mode", DEFAULT_MODE)),
-        updated_at=str(payload.get("updated_at", "")),
-        summary=str(payload.get("summary", "")),
-        last_feedback=str(payload.get("last_feedback", "")),
+        version=version,
+        course_id=course_id,
+        lesson_index=lesson_index,
+        mode=mode or DEFAULT_MODE,
+        updated_at=updated_at,
+        summary=summary,
+        last_feedback=last_feedback,
     )
 
 

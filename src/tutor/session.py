@@ -70,17 +70,11 @@ class TutorSession:
         if state is None:
             return
 
-        for course in self.courses:
-            if course.id != state.course_id:
-                continue
-            if state.lesson_index < 0 or state.lesson_index >= len(course.lessons):
-                return
-            self.selected_course = course
-            self.lesson_index = state.lesson_index
-            self.mode = state.mode or DEFAULT_MODE
-            self.summary = state.summary
-            self.last_feedback = state.last_feedback
-            return
+        self.selected_course = None
+        self.lesson_index = 0
+        self.mode = state.mode or DEFAULT_MODE
+        self.summary = state.summary
+        self.last_feedback = state.last_feedback
 
     def _save_state(self) -> None:
         if self.selected_course is None:
