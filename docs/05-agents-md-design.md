@@ -1,63 +1,41 @@
-# agents.md 设计定稿
+# agents.md 设计定稿（v1.1）
 
 ## 日期
-2026-03-05
+2026-03-09
 
-## 核心决策
+## 核心决策（最新）
 
-### 1. 文件位置
-项目根目录下的 `agents.md`，作为 OpenClaw/OpenCode 的 Agent 定义文件。
+### 1) 单一教学内核
+- 统一由仓库根目录 `agents.md` 驱动。
+- Discord / Telegram / 本地目录仅是不同 channel，教学逻辑一致。
 
-### 2. 项目最终结构
+### 2) 课程来源
+- 内置课程：`courses/`
+- 自定义课程：`my-courses/`
 
-```
-ai-code-tutor/
-├── agents.md
-├── courses/
-│   └── 2025-logic/
-│       ├── 01_starting_point.py
-│       ├── ...
-│       ├── 08_logic_to_data.py
-│       ├── main.py
-│       └── README.md
-├── my-courses/
-│   └── my-python-tutorial/
-│       ├── 01_hello.py
-│       ├── 02_functions.py
-│       └── README.md
-└── .gitignore
-```
+### 3) 状态策略（极简）
+- 只使用一个文件：`/.study/state.json`
+- 用途：保存当前学习上下文
+- 不做跨课程进度档案
+- 重置学习：清空该文件
 
-### 3. 已排除的设计
+### 4) 用户意图优先
+当用户提出“下一课”：
+1. 先检查当前课要点覆盖
+2. 提醒未覆盖要点
+3. 再次确认
+4. 最终遵循用户意图推进
 
-| 设计 | 排除原因 |
-|-----|---------|
-| progress.yaml | 会话级记录进度，不存文件 |
-| 单独的 prompts/ 目录 | 统一放在 agents.md 中 |
+### 5) 命名兼容
+lesson 文件兼容：
+- `01_xxx.py`
+- `1_xxx.py`
 
-### 4. agents.md 核心内容框架
-
-```markdown
-# AI Code Tutor - Agent 定义
-
-## 角色
-你是编程学习导师，专注于通过代码重构帮助新手提升编程能力。
-
-## 工作目录规则
-- 读取课程：courses/<course-id>/
-- 用户课程：my-courses/<course-id>/
-
-## 启动流程
-1. 扫描 courses/ 和 my-courses/，列出可用课程
-2. 询问用户要学习哪个课程
-3. 加载选定课程的第一课，开始引导
-
-## 教学原则
-- 引导而非灌输
-- 循序渐进
-- 及时反馈
-```
+## 取舍说明
+- 不引入额外流程层（如 channel-specific mapping）
+- 不构建复杂后端状态系统
+- 需要工具化能力时，以 skill 形式提供最小原子能力
 
 ## 下一步
-
-L2 内容结构已定稿，下一步进入 **L3 交互设计** 讨论。
+- 按本决策更新 `agents.md` 与实现细节
+- 后续仅在必要时补最小代码（非默认优先）

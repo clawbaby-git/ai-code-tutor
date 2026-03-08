@@ -1,37 +1,33 @@
-# AI Code Tutor (MVP M1)
+# AI Code Tutor
 
-## 运行
+AI 驱动的代码重构学习项目。
 
-在项目根目录执行：
+## 设计目标
+- 同一套学习逻辑覆盖 Discord / Telegram / 本地目录
+- 学习流程由 `agents.md` 驱动（自然语言模式）
+- 支持内置课程与自定义课程
+- 使用单状态文件保存当前学习上下文
 
-```bash
-PYTHONPATH=src python3 -m tutor.cli
-```
+## 核心结构
+- `agents.md`：教学行为与流程规则
+- `courses/`：内置课程
+- `my-courses/`：本地自定义课程
+- `.study/state.json`：当前学习上下文（单文件）
 
-CLI 会扫描 `./courses/` 和 `./my-courses/`，列出课程后进入当前 lesson 展示。
-会话状态保存在 `.study/state.json`（单文件、单用户），下次启动会自动恢复到上次的课程和 lesson。
+## 状态策略
+- 不区分 channel
+- 不记录 user_id
+- 不做跨课程长期进度档案
+- 只保存当前课程推进所需上下文
 
-默认学习模式为 `natural-language`。
-
-如需从头开始，删除状态文件即可：
+## 重置学习
+清空状态文件：
 
 ```bash
 rm -f .study/state.json
 ```
 
-## 测试
-
-在项目根目录执行：
-
-```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
-```
-
-## 命名兼容
-
-lesson 文件同时兼容以下命名：
-
-- `01_xxx.py`
-- `1_xxx.py`
-
-排序规则按数字前缀升序（例如 `01_`、`1_`、`2_`、`10_`）。
+## 参考文档
+- `docs/03-mvp-implementation-plan.md`
+- `docs/05-agents-md-design.md`
+- `docs/08-runtime-architecture-v1.md`
