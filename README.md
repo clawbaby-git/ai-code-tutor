@@ -9,6 +9,15 @@ PYTHONPATH=src python3 -m tutor.cli
 ```
 
 CLI 会扫描 `./courses/` 和 `./my-courses/`，列出课程后进入当前 lesson 展示。
+会话状态保存在 `.study/state.json`（单文件、单用户），下次启动会自动恢复到上次的课程和 lesson。
+
+默认学习模式为 `natural-language`。
+
+如需从头开始，删除状态文件即可：
+
+```bash
+rm -f .study/state.json
+```
 
 ## 测试
 

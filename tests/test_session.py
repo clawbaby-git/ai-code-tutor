@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from tutor.session import TutorSession
+from tutor.state import state_path
 
 
 class TutorSessionTests(unittest.TestCase):
-    def test_session_progression_and_bounds(self) -> None:
+    def test_select_course_creates_state_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             course_dir = Path(tmp_dir) / "courses" / "logic"
             course_dir.mkdir(parents=True)
@@ -22,10 +24,65 @@ class TutorSessionTests(unittest.TestCase):
             self.assertEqual(selected.id, "courses/logic")
             self.assertEqual(session.current_lesson.filename, "1_first.py")
             self.assertEqual(session.current_lesson_code().strip(), "x = 1")
+            self.assertTrue(state_path(Path(tmp_dir)).exists())
+
+            payload = json.loads(state_path(Path(tmp_dir)).read_text(encoding="utf-8"))
+            self.assertEqual(payload["course_id"], "courses/logic")
+            self.assertEqual(payload["lesson_index"], 0)
+            self.assertEqual(payload["mode"], "natural-language")
+
+    def test_session_restores_from_state_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            course_dir = root / "courses" / "logic"
+            course_dir.mkdir(parents=True)
+            (course_dir / "1_first.py").write_text("x = 1\n", encoding="utf-8")
+            (course_dir / "2_second.py").write_text("x = 2\n", encoding="utf-8")
+
+            study_dir = root / ".study"
+            study_dir.mkdir(parents=True)
+            (study_dir / "state.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "course_id": "courses/logic",
+                        "lesson_index": 1,
+                        "mode": "natural-language",
+                        "updated_at": "2026-03-09T00:00:00+00:00",
+                        "summary": "s",
+                        "last_feedback": "f",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            session = TutorSession.from_workspace(root)
+            self.assertIsNotNone(session.selected_course)
+            self.assertEqual(session.selected_course.id, "courses/logic")
+            self.assertEqual(session.lesson_index, 1)
+            self.assertEqual(session.current_lesson.filename, "2_second.py")
+            self.assertEqual(session.mode, "natural-language")
+            self.assertEqual(session.summary, "s")
+            self.assertEqual(session.last_feedback, "f")
+
+    def test_next_lesson_writes_back_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            course_dir = root / "courses" / "logic"
+            course_dir.mkdir(parents=True)
+            (course_dir / "1_first.py").write_text("x = 1\n", encoding="utf-8")
+            (course_dir / "2_second.py").write_text("x = 2\n", encoding="utf-8")
+
+            session = TutorSession.from_workspace(root)
+            session.select_course(0)
 
             self.assertTrue(session.next_lesson())
             self.assertEqual(session.current_lesson.filename, "2_second.py")
             self.assertFalse(session.next_lesson())
+
+            payload = json.loads(state_path(root).read_text(encoding="utf-8"))
+            self.assertEqual(payload["lesson_index"], 1)
+            self.assertEqual(payload["course_id"], "courses/logic")
 
 
 if __name__ == "__main__":
