@@ -13,6 +13,7 @@ AI 驱动的代码重构学习项目。
 - `courses/`：内置课程
 - `my-courses/`：本地自定义课程
 - `.study/state.json`：当前学习上下文（单文件）
+- `.study/workspace/{course_id}/`：用户可编辑的 lesson 副本
 
 ## 状态策略
 - 不区分 channel
@@ -24,11 +25,23 @@ AI 驱动的代码重构学习项目。
 - 若 `.study/state.json` 缺失、损坏或字段异常，回退为无有效 state 并继续正常选课
 - 用户请求“下一课”时，若关键点未覆盖，会先提示缺口并请求确认；用户确认后再推进，否则保持当前课
 
+## 用户工作区
+- `courses/` 和 `my-courses/` 保持原始课程内容，只作为只读源文件
+- 选课后，当前 lesson 会自动复制到 `.study/workspace/{course_id}/`
+- Tutor 读取当前 lesson 时优先读取工作区副本，因此用户修改不会污染原始课程文件
+- 需要对比原始版本和用户版本时，可同时读取课程源文件与工作区副本
+
 ## 重置学习
 清空状态文件：
 
 ```bash
 rm -f .study/state.json
+```
+
+如需连同用户工作区一起清空：
+
+```bash
+rm -rf .study
 ```
 
 ## 参考文档

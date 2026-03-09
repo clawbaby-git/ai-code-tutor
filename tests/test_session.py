@@ -25,6 +25,9 @@ class TutorSessionTests(unittest.TestCase):
             self.assertEqual(selected.id, "courses/logic")
             self.assertEqual(session.current_lesson.filename, "1_first.py")
             self.assertEqual(session.current_lesson_code().strip(), "x = 1")
+            self.assertTrue(
+                (Path(tmp_dir) / ".study" / "workspace" / "courses" / "logic" / "1_first.py").exists()
+            )
             self.assertTrue(state_path(Path(tmp_dir)).exists())
 
             payload = json.loads(state_path(Path(tmp_dir)).read_text(encoding="utf-8"))
@@ -157,11 +160,32 @@ class TutorSessionTests(unittest.TestCase):
 
             self.assertTrue(session.next_lesson())
             self.assertEqual(session.current_lesson.filename, "2_second.py")
+            self.assertEqual(
+                session.get_current_lesson_workspace_path(),
+                root / ".study" / "workspace" / "courses" / "logic" / "2_second.py",
+            )
             self.assertFalse(session.next_lesson())
 
             payload = json.loads(state_path(root).read_text(encoding="utf-8"))
             self.assertEqual(payload["lesson_index"], 1)
             self.assertEqual(payload["course_id"], "courses/logic")
+
+    def test_current_lesson_code_reads_user_workspace_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            course_dir = root / "courses" / "logic"
+            course_dir.mkdir(parents=True)
+            original_lesson = course_dir / "1_first.py"
+            original_lesson.write_text("x = 1\n", encoding="utf-8")
+
+            session = TutorSession.from_workspace(root)
+            session.select_course(0)
+
+            workspace_lesson = session.get_current_lesson_workspace_path()
+            workspace_lesson.write_text("x = 99\n", encoding="utf-8")
+
+            self.assertEqual(session.current_lesson.path, original_lesson)
+            self.assertEqual(session.current_lesson_code().strip(), "x = 99")
 
     def test_next_lesson_gate_asks_for_confirmation_when_gaps_remain(self) -> None:
         decision = decide_progression(

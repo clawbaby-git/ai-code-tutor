@@ -6,11 +6,13 @@ from pathlib import Path
 from .course import Course, Lesson, scan_courses
 from .progression import ProgressionDecision, decide_progression
 from .state import DEFAULT_MODE, load_state, save_state
+from .workspace import ensure_lesson_in_workspace, get_workspace_path
 
 
 @dataclass
 class TutorSession:
     workspace: Path = field(default_factory=Path.cwd)
+    workspace_root: Path = field(default_factory=lambda: Path(".study/workspace"))
     courses: list[Course] = field(default_factory=list)
     selected_course: Course | None = None
     lesson_index: int = 0
@@ -30,6 +32,7 @@ class TutorSession:
             raise IndexError("course index out of range")
         self.selected_course = self.courses[index]
         self.lesson_index = 0
+        self._sync_current_lesson_workspace()
         self._save_state()
         return self.selected_course
 
@@ -42,10 +45,17 @@ class TutorSession:
         return self.selected_course.lessons[self.lesson_index]
 
     def current_lesson_code(self) -> str:
+        return self.get_current_lesson_workspace_path().read_text(encoding="utf-8")
+
+    def get_current_lesson_workspace_path(self) -> Path:
         lesson = self.current_lesson
-        if lesson is None:
+        if lesson is None or self.selected_course is None:
             raise RuntimeError("no course selected")
-        return lesson.path.read_text(encoding="utf-8")
+        course_workspace = get_workspace_path(
+            self._resolved_workspace_root(),
+            self.selected_course.id,
+        )
+        return ensure_lesson_in_workspace(lesson.path, course_workspace)
 
     def current_lesson_note(self) -> str:
         lesson = self.current_lesson
@@ -63,6 +73,7 @@ class TutorSession:
         if self.lesson_index + 1 >= len(self.selected_course.lessons):
             return False
         self.lesson_index += 1
+        self._sync_current_lesson_workspace()
         self._save_state()
         return True
 
@@ -108,3 +119,11 @@ class TutorSession:
             summary=self.summary,
             last_feedback=self.last_feedback,
         )
+
+    def _resolved_workspace_root(self) -> Path:
+        if self.workspace_root.is_absolute():
+            return self.workspace_root
+        return self.workspace / self.workspace_root
+
+    def _sync_current_lesson_workspace(self) -> None:
+        self.get_current_lesson_workspace_path()
